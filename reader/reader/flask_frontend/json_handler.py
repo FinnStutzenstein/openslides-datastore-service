@@ -205,6 +205,45 @@ request_map: Dict[Route, RequestMapEntry] = {
     Route.MAX: {"schema": minmax_schema, "request_class": MinMaxRequest},
 }
 
+from .ot import tracer, meter
+from opentelemetry import metrics
+import json
+import time
+import threading
+from opentelemetry.sdk.metrics import Counter
+
+requests_counter = meter.create_metric(
+    name="requests",
+    description="number of requests",
+    unit="1",
+    value_type=int,
+    metric_type=Counter,
+)
+
+"""
+class TT(threading.Thread):
+    def __init__(self, counter):
+        super().__init__()
+        self.counter = counter
+        self.start()
+
+    def run(self, *args, **kwargs):
+        while True:
+            print("count tt")
+            self.counter.add(1, {"route": "tt"})
+            time.sleep(1)
+
+
+tt_counter = meter.create_metric(
+    name="tt",
+    description="some other counter",
+    unit="1",
+    value_type=int,
+    metric_type=Counter,
+)
+
+TT(tt_counter)
+"""
 
 class JSONHandler:
     def handle_request(self, route: Route, data: JSON) -> Dict:
@@ -213,25 +252,31 @@ class JSONHandler:
         according to the request_map and execute the according function.
         """
 
-        try:
-            route_metadata = request_map[route]
-            schema = route_metadata["schema"]
-            request_class = route_metadata["request_class"]
-        except KeyError:
-            raise BadCodingError("Invalid route metadata: " + route)
+        requests_counter.add(1, {"route": str(route)})
+        print("count")
 
-        try:
-            request_data = schema(data)
-        except fastjsonschema.JsonSchemaException as e:
-            raise InvalidRequest(e.message)
+        with tracer.start_as_current_span("preperation", attributes={"hello": "world"}):
+            try:
+                route_metadata = request_map[route]
+                schema = route_metadata["schema"]
+                request_class = route_metadata["request_class"]
+            except KeyError:
+                raise BadCodingError("Invalid route metadata: " + route)
 
-        try:
-            request_object = from_dict(
-                request_class, request_data, Config(check_types=False)
-            )
-        except (TypeError, MissingValueError) as e:
-            raise BadCodingError("Invalid data to initialize class\n" + str(e))
+            try:
+                request_data = schema(data)
+            except fastjsonschema.JsonSchemaException as e:
+                raise InvalidRequest(e.message)
 
-        reader = injector.get(Reader)
-        function = getattr(reader, route)
-        return function(request_object)
+            try:
+                request_object = from_dict(
+                    request_class, request_data, Config(check_types=False)
+                )
+            except (TypeError, MissingValueError) as e:
+                raise BadCodingError(f"Invalid data to initialize class: {e}")
+
+            reader = injector.get(Reader)
+            function = getattr(reader, route)
+
+        with tracer.start_as_current_span("execution", attributes={"content": json.dumps(request_data)}):
+            return function(request_object)

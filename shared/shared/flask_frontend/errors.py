@@ -4,6 +4,7 @@ from werkzeug.exceptions import default_exceptions
 
 from shared.postgresql_backend.connection_handler import DatabaseError
 from shared.util import (
+    logger,
     InvalidFormat,
     ModelDoesNotExist,
     ModelExists,
@@ -32,6 +33,7 @@ def handle_internal_errors(fn):
         try:
             return fn(*args, **kwargs)
         except DatabaseError as e:
+            logger.error(f"Database Error: {e}")
             return JsonResponse({"error": e.msg}), 500
         except InvalidFormat as e:
             error_dict = {
@@ -69,6 +71,9 @@ def handle_internal_errors(fn):
                 "key": e.key,
                 "type_verbose": "MODEL_LOCKED",
             }
+        except Exception as e:
+            logger.error(e)
+            raise e
         return {"error": error_dict}, 400
 
     return wrapper

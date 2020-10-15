@@ -9,7 +9,7 @@ COPY requirements/requirements-general.txt scripts/system/* ./
 ARG MODULE
 RUN test -n "$MODULE" || (echo "MODULE not set" && false)
 
-COPY $MODULE/requirements.txt $MODULE/entrypoint.sh ./
+COPY $MODULE/requirements.txt ./
 RUN pip install -U -r requirements-general.txt
 
 ENV PYTHONPATH /app/
@@ -22,6 +22,7 @@ RUN test -n "$PORT" || (echo "PORT not set" && false)
 ENV PORT=$PORT
 
 EXPOSE $PORT
+COPY $MODULE/entrypoint.sh ./
 
 ENTRYPOINT ["./entrypoint.sh"]
 CMD flask run --host 0.0.0.0 --port $PORT
