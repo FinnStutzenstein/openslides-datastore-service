@@ -8,7 +8,7 @@ from shared.di import injector
 from shared.postgresql_backend import ConnectionHandler
 from shared.services import EnvironmentService
 from shared.util import build_fqid
-from writer.app import register_services
+from writer.services import register_services
 from writer.core import BaseRequestEvent, RequestCreateEvent, Writer, WriteRequest
 
 

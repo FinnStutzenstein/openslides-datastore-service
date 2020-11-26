@@ -6,9 +6,9 @@ from .routes import URL_PREFIX
 from .routes_handler import register_routes
 
 
-from .ot import tracer
-from opentelemetry import trace
-from opentelemetry.instrumentation.flask import FlaskInstrumentor
+#from .ot import tracer
+#from opentelemetry import trace
+from shared.opentelemetry import FlaskInstrumentor
 
 class FlaskFrontend:
     @classmethod

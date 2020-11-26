@@ -16,6 +16,8 @@ from writer.core import (
     Writer,
     WriteRequest,
 )
+from shared.opentelemetry import tracer
+import json
 
 
 write_schema = fastjsonschema.compile(
@@ -58,9 +60,12 @@ class WriteRequestJSON(TypedDict):
 
 class WriteHandler:
     def write(self, data: JSON) -> None:
-        write_request = self.build_write_request(data)
-        writer = injector.get(Writer)
-        writer.write(write_request)
+        with tracer().start_as_current_span("preparation", attributes={"content": json.dumps(data)}):
+            write_request = self.build_write_request(data)
+
+        with tracer().start_as_current_span("execution", attributes={"content": json.dumps(data)}):
+            writer = injector.get(Writer)
+            writer.write(write_request)
 
     def build_write_request(self, data: JSON) -> WriteRequest:
         try:

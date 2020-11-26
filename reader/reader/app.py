@@ -1,17 +1,12 @@
-from reader.core import setup_di as core_setup_di
 from reader.flask_frontend import FlaskFrontend
 from shared import create_base_application
-from shared.postgresql_backend import setup_di as postgresql_setup_di
-from shared.services import setup_di as util_setup_di
+from shared.opentelemetry import setup as setup_opentelemetry
 
-
-def register_services():
-    util_setup_di()
-    postgresql_setup_di()
-    core_setup_di()
+from .services import register_services
 
 
 def create_application():
+    setup_opentelemetry("datastore_reader")
     register_services()
     return create_base_application(FlaskFrontend)
 

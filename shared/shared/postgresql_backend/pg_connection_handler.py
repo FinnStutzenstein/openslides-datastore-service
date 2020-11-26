@@ -11,7 +11,7 @@ from shared.services import EnvironmentService, ShutdownService
 from shared.util import BadCodingError
 
 from .connection_handler import DatabaseError
-
+from shared.opentelemetry import Psycopg2Instrumentor, enabled
 
 # TODO: Test this. Add something like a @ensure_connection decorator, that wraps a
 # function that uses the database. It should ensure, that a transaction is running
@@ -50,6 +50,9 @@ class PgConnectionHandlerService:
     shutdown_service: ShutdownService
 
     def __init__(self, shutdown_service: ShutdownService):
+        if enabled():
+            Psycopg2Instrumentor().instrument()
+
         shutdown_service.register(self)
         self._storage = threading.local()
 
